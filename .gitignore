@@ -1,0 +1,11 @@
+# Ignore the .dist directory
+.dist/
+
+# Ignore the build directory
+build/
+
+# Ignore the .vscode directory
+.vscode/
+
+# Ignore the .idea directory
+.idea/

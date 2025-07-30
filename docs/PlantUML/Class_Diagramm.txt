@@ -1,0 +1,46 @@
+@startuml
+class NeutronDetector {
+    +NeutronDetector(uint8_t analogPin, uint16_t threshold)
+    +void begin()
+    +bool isInitialized()
+    +void update()
+    +void reset()
+    +uint16_t getPulseCount()
+    +const Pulse& getPulse(uint16_t index)
+    +PulseAnalysis getPulseAnalysis(uint16_t index)
+    +bool isInputConnected()
+    +void registerHTTPEndpoints(ESP8266WebServer& server)
+    +String getLastPulseJSON()
+    +String getPulseHistoryJSON(uint16_t count)
+    +String getStatisticsJSON()
+    --
+    -void capturePulse()
+    -void updateBaseline()
+    -uint16_t overSample(bool active)
+    -float computeDecayTime(const Pulse& p)
+    -float computePulseArea(const Pulse& p)
+    -float computeRiseTime(const Pulse& p)
+    -void updateThreshold(float currentDev)
+    -PulseAnalysis analyzePulse(const Pulse& p)
+    -bool checkInputConnected()
+    -void addPulseToJSON(JsonDocument& doc, uint16_t index)
+}
+
+class Pulse {
+    +uint64_t timestamp
+    +uint8_t samples[SAMPLES_PER_PULSE]
+    +uint8_t peakValue
+}
+
+class PulseAnalysis {
+    +float decayTime
+    +float riseTime
+    +float pulseArea
+    +bool isNeutron
+    +float baseline
+    +float threshold
+}
+
+NeutronDetector "1" *-- "MAX_PULSES" Pulse
+NeutronDetector "1" *-- "1" PulseAnalysis
+@enduml

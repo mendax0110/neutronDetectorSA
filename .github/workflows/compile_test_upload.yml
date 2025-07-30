@@ -22,6 +22,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Cache Arduino libraries
+        uses: actions/cache@v3
+        with:
+          path: ~/Arduino/libraries
+          key: ${{ runner.os }}-arduino-libs-${{ hashFiles('**/*.ino') }}
+
       - name: Set up Arduino CLI
         uses: arduino/setup-arduino-cli@v2
         with:
@@ -31,12 +37,14 @@ jobs:
         run: |
           arduino-cli core update-index
           arduino-cli core install esp8266:esp8266
+          arduino-cli core list | grep esp8266
 
       - name: Install required libraries
         run: |
           arduino-cli lib install "ESP8266WiFi"
           arduino-cli lib install "ESP8266WebServer"
           arduino-cli lib install "ArduinoJson"
+          arduino-cli lib install "Blynk"
 
       - name: List installed boards and libraries
         run: |
@@ -51,8 +59,8 @@ jobs:
             --export-binaries \
             neutronDetectorSA.ino
 
-      # The following steps are optional for analysis
       - name: Generate ELF Analysis Report
+        if: success()
         run: |
           mkdir -p elf-analysis
           for elf_file in $(find /home/runner/.cache/arduino/sketches/ -name '*.elf'); do
@@ -77,4 +85,5 @@ jobs:
           path: |
             /home/runner/.cache/arduino/sketches/**/*.bin
             /home/runner/.cache/arduino/sketches/**/*.elf
+            elf-analysis/*.md
           if-no-files-found: warn

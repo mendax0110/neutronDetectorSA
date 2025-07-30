@@ -27,7 +27,7 @@ jobs:
         with:
           additional-urls: http://arduino.esp8266.com/stable/package_esp8266com_index.json
 
-      - name: Install ESP8266 core
+      - name: Install ESP8266 core (NodeMCU)
         run: |
           arduino-cli core update-index
           arduino-cli core install esp8266:esp8266
@@ -38,29 +38,21 @@ jobs:
           arduino-cli lib install "ESP8266WebServer"
           arduino-cli lib install "ArduinoJson"
 
-      - name: List installed libraries
-        run: arduino-cli lib list
+      - name: List installed boards and libraries
+        run: |
+          arduino-cli board listall | grep -i nodemcu
+          arduino-cli lib list
 
-      - name: Clean Arduino build cache
-        run: rm -rf /home/runner/.cache/arduino/sketches/*
-
-      - name: Compile NeutronDetector Sketch
+      - name: Compile for NodeMCU
         run: |
           arduino-cli compile --verbose \
-            --fqbn esp8266:esp8266:generic \
+            --fqbn esp8266:esp8266:nodemcuv2 \
             --libraries ~/Arduino/libraries \
             --export-binaries \
             neutronDetectorSA.ino
 
-      - name: Debug - List compiled files in cache directory
-        run: |
-          echo "Listing compiled files in the Arduino cache directory"
-          ls -R /home/runner/.cache/arduino/sketches/ | grep -E '\.(hex|bin|elf)$'
-
-      - name: Install analysis tools
-        run: sudo apt-get update && sudo apt-get install -y binutils
-
-      - name: Generate ELF Analysis Report (Markdown)
+      # The following steps are optional for analysis
+      - name: Generate ELF Analysis Report
         run: |
           mkdir -p elf-analysis
           for elf_file in $(find /home/runner/.cache/arduino/sketches/ -name '*.elf'); do
@@ -76,27 +68,9 @@ jobs:
             echo '```' >> "$report_file"
             readelf -S "$elf_file" >> "$report_file"
             echo '```' >> "$report_file"
-            echo "## Symbols" >> "$report_file"
-            echo '```' >> "$report_file"
-            readelf -s "$elf_file" >> "$report_file"
-            echo '```' >> "$report_file"
-            echo "## Disassembly (First 100 lines)" >> "$report_file"
-            echo '```' >> "$report_file"
-            objdump -d "$elf_file" | head -n 100 >> "$report_file"
-            echo '```' >> "$report_file"
           done
 
-      - name: Upload ELF Analysis Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: elf-analysis-report
-          path: elf-analysis/
-          if-no-files-found: error
-          compression-level: 6
-          overwrite: true
-          include-hidden-files: false
-
-      - name: Upload Build Artifacts (BIN, ELF)
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: arduino-build-artifacts
@@ -104,6 +78,3 @@ jobs:
             /home/runner/.cache/arduino/sketches/**/*.bin
             /home/runner/.cache/arduino/sketches/**/*.elf
           if-no-files-found: warn
-          compression-level: 6
-          overwrite: false
-          include-hidden-files: false

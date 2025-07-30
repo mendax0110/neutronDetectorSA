@@ -35,8 +35,6 @@ jobs:
 
       - name: Install required libraries
         run: |
-          arduino-cli lib install "ESP8266WiFi"
-          arduino-cli lib install "ESP8266WebServer"
           arduino-cli lib install "ArduinoJson"
 
       - name: List installed boards and libraries

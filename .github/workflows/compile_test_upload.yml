@@ -20,40 +20,31 @@ jobs:
 
     steps:
       - name: Checkout repository
-        run: |
-          git clone https://github.com/${{ github.repository }}.git
-          cd ${{ github.repository.split('/')[1] }}
+        uses: actions/checkout@v3
 
-      - name: Install Arduino CLI
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Set up Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+        with:
+          additional-urls: http://arduino.esp8266.com/stable/package_esp8266com_index.json
 
-      - name: Configure Arduino CLI
+      - name: Install ESP8266 core (NodeMCU)
         run: |
-          arduino-cli config init
           arduino-cli config add board_manager.additional_urls http://arduino.esp8266.com/stable/package_esp8266com_index.json
-          arduino-cli config dump
-
-      - name: Install ESP8266 core
-        run: |
           arduino-cli core update-index
           arduino-cli core install esp8266:esp8266
-          arduino-cli core list
 
       - name: Install required libraries
         run: |
           arduino-cli lib install "ESP8266WiFi"
           arduino-cli lib install "ESP8266WebServer"
           arduino-cli lib install "ArduinoJson"
-          arduino-cli lib install "Blynk"
-          arduino-cli lib list
 
-      - name: Verify NodeMCU board
+      - name: List installed boards and libraries
         run: |
           arduino-cli board listall | grep -i nodemcu
+          arduino-cli lib list
 
-      - name: Compile sketch
+      - name: Compile for NodeMCU
         run: |
           arduino-cli compile --verbose \
             --fqbn esp8266:esp8266:nodemcuv2 \
@@ -61,7 +52,8 @@ jobs:
             --export-binaries \
             neutronDetectorSA.ino
 
-      - name: Analyze build artifacts
+      # The following steps are optional for analysis
+      - name: Generate ELF Analysis Report
         run: |
           mkdir -p elf-analysis
           for elf_file in $(find /home/runner/.cache/arduino/sketches/ -name '*.elf'); do
@@ -79,9 +71,11 @@ jobs:
             echo '```' >> "$report_file"
           done
 
-      - name: Upload artifacts
-        run: |
-          gh release upload $GITHUB_REF_NAME /home/runner/.cache/arduino/sketches/**/*.bin \
-            /home/runner/.cache/arduino/sketches/**/*.elf \
-            elf-analysis/*.md \
-            --clobber
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: arduino-build-artifacts
+          path: |
+            /home/runner/.cache/arduino/sketches/**/*.bin
+            /home/runner/.cache/arduino/sketches/**/*.elf
+          if-no-files-found: warn

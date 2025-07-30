@@ -1,0 +1,12 @@
+@startuml
+actor HAS
+participant "ESP8266WebServer" as Server
+participant "NeutronDetector" as Detector
+
+HAS-> Server: GET /neutron/last
+Server -> Detector: getLastPulseJSON()
+Detector -> Detector: getPulseCount()
+Detector -> Detector: addPulseToJSON()
+Detector -> Server: JSON response
+Server -> HAS: JSON with last pulse data
+@enduml

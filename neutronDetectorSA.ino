@@ -29,5 +29,5 @@ void loop()
 {
     detector.update();
     server.handleClient();
-    delay(1);
+    delayMicroseconds(100);
 }
